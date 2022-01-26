@@ -87,7 +87,9 @@ class OCR(val context: Context) {
                     }
                 },
                 {
-                    callback.onFail(it)
+                    coroutineScope.launch(Dispatchers.Main) {
+                        callback.onFail(it)
+                    }
                 }
             )
         }

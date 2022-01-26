@@ -28,13 +28,14 @@ class MainActivity : AppCompatActivity() {
         val resultText = findViewById<TextView>(R.id.result_text)
 
         initBtn.setOnClickListener {
-            // 配置配置文件
+            // 配置
             val config = OcrConfig()
             //config.labelPath = null
-            config.modelPath = "/sdcard/Android/data/com.equationl.paddleocr4android/files/models"
-            //config.clsModelFilename = "cls.nb"
-            //config.detModelFilename = "det.nb"
-            //config.recModelFilename = "rec.nb"
+            //config.modelPath = "models/ocr_v2_for_cpu" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
+            config.modelPath = "/sdcard/Android/data/com.equationl.paddleocr4android/files/models" // 使用 "/" 表示手机储存路径，测试时请将下载的三个模型放置于该目录下
+            //config.clsModelFilename = "cls.nb" // cls 模型文件名
+            //config.detModelFilename = "det.nb" // det 模型文件名
+            //config.recModelFilename = "rec.nb" // rec 模型文件名
 
             // 1.同步初始化
             /*ocr.initModelSync(config).fold(
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onFail(e: Throwable) {
-                    resultText.text = "加载模型失败"
+                    resultText.text = "加载模型失败: $e"
                     Log.e(TAG, "onFail: 初始化失败", e)
                 }
 
