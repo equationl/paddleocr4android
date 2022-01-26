@@ -56,7 +56,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.equationl.paddleocr4android'
                 artifactId = 'paddleocr4android'
-                version = 'V1.0.3'
+                version = 'V1.0.4'
             }
         }
     }
