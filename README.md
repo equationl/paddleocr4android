@@ -1,0 +1,1 @@
+模型下载地址: [Paddle-Lite模型](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.4/doc/doc_ch/models_list.md#Paddle-Lite模型)
