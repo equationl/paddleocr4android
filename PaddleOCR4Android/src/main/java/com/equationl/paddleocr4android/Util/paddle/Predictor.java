@@ -1,5 +1,9 @@
 package com.equationl.paddleocr4android.Util.paddle;
 
+import static android.graphics.Color.blue;
+import static android.graphics.Color.green;
+import static android.graphics.Color.red;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -9,19 +13,17 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
+import com.equationl.paddleocr4android.exception.InitModelException;
+import com.equationl.paddleocr4android.exception.RunModelException;
+
 import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
-
-import static android.graphics.Color.*;
-
-import androidx.annotation.Nullable;
-
-import com.equationl.paddleocr4android.exception.InitModelException;
-import com.equationl.paddleocr4android.exception.RunModelException;
 
 public class Predictor {
     private static final String TAG = Predictor.class.getSimpleName();
@@ -190,6 +192,10 @@ public class Predictor {
             throw new InitModelException("Load label Fail: " + e.getMessage());
         }
         return true;
+    }
+
+    public Vector<String> getWordLabels() {
+        return wordLabels;
     }
 
 

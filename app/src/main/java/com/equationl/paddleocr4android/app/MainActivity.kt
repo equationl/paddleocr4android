@@ -1,12 +1,12 @@
 package com.equationl.paddleocr4android.app
 
 import android.graphics.BitmapFactory
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import com.equationl.paddleocr4android.OCR
 import com.equationl.paddleocr4android.OcrConfig
 import com.equationl.paddleocr4android.bean.OcrResult
@@ -87,7 +87,13 @@ class MainActivity : AppCompatActivity() {
 
                     var text = "识别文字=$simpleText\n识别时间=$inferenceTime ms\n更多信息=\n"
 
+                    val wordLabels = ocr.getWordLabels()
                     outputRawResult.forEachIndexed { index, ocrResultModel ->
+                        // 文字索引（crResultModel.wordIndex）对应的文字可以从字典（wordLabels） 中获取
+                        ocrResultModel.wordIndex.forEach {
+                            Log.i(TAG, "onSuccess: text = ${wordLabels[it]}")
+                        }
+
                         text += "$index: 置信度 ${ocrResultModel.confidence}；文字索引位置 ${ocrResultModel.wordIndex}；文字位置：${ocrResultModel.points} \n"
                     }
 

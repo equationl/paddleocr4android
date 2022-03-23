@@ -14,6 +14,7 @@ import com.equationl.paddleocr4android.exception.RunModelException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.*
 
 class OCR(val context: Context) {
 
@@ -34,6 +35,10 @@ class OCR(val context: Context) {
 
     fun getPredictor(): Predictor {
         return predictor
+    }
+
+    fun getWordLabels(): Vector<String> {
+        return predictor.wordLabels
     }
 
     /**
