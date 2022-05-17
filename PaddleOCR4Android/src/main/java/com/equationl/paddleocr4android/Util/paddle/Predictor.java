@@ -256,8 +256,8 @@ public class Predictor {
     }
 
     private void drawResults(ArrayList<OcrResultModel> results) {
-        StringBuffer outputResultSb = new StringBuffer("");
-        for (int i = results.size()-1; i > 0; i--) {
+        StringBuilder outputResultSb = new StringBuilder();
+        for (int i = results.size()-1; i >= 0; i--) {
             OcrResultModel result = results.get(i);
             StringBuilder sb = new StringBuilder("");
             /*if(result.getPoints().size()>0){
