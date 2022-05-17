@@ -26,12 +26,14 @@ class OCR(val context: Context) {
     private var labelPath: String? = "labels/ppocr_keys_v1.txt"
     private var cpuThreadNum = 4
     private var cpuPowerMode = "LITE_POWER_HIGH"
-    private var inputColorFormat = "BGR"
-    private var inputShape = longArrayOf(1,3,960)
-    private var inputMean = floatArrayOf(0.485F, 0.456F, 0.406F)
-    private var inputStd = floatArrayOf(0.229F, 0.224F, 0.225F)
     private var scoreThreshold = 0.1f
     private var modelFileNames = arrayOf<String>()
+    private var isRunCls = true
+    private var isRunDet = true
+    private var isRunRec = true
+    private var isUseOpencl = false
+    private var detLongSize = 960
+    private var isDrwwTextPositionBox = false
 
     fun getPredictor(): Predictor {
         return predictor
@@ -57,12 +59,9 @@ class OCR(val context: Context) {
         return try {
             Result.success(
                 predictor.init(
-                    context, modelPath, labelPath, cpuThreadNum,
-                    cpuPowerMode,
-                    inputColorFormat,
-                    inputShape, inputMean,
-                    inputStd, scoreThreshold,
-                    modelFileNames
+                    context, modelPath, labelPath, isUseOpencl, cpuThreadNum,
+                    cpuPowerMode, detLongSize, scoreThreshold,
+                    modelFileNames, isDrwwTextPositionBox
                 )
             )
         } catch (e: Throwable) {
@@ -166,7 +165,7 @@ class OCR(val context: Context) {
 
     private fun runModel(): Result<Boolean> {
         return try {
-            Result.success(predictor.isLoaded() && predictor.runModel())
+            Result.success(predictor.isLoaded() && predictor.runModel(isRunDet, isRunCls, isRunRec))
         } catch (e: Throwable) {
             Result.failure(e)
         }
@@ -177,15 +176,17 @@ class OCR(val context: Context) {
         this.labelPath = config.labelPath
         this.cpuThreadNum = config.cpuThreadNum
         this.cpuPowerMode = config.cpuPowerMode.name
-        this.inputColorFormat = config.inputColorFormat.name
-        this.inputShape = config.inputShape
-        this.inputMean = config.inputMean
-        this.inputStd = config.inputStd
         this.scoreThreshold = config.scoreThreshold
         this.modelFileNames = arrayOf(
             config.detModelFilename,
             config.recModelFilename,
             config.clsModelFilename)
+        this.detLongSize = config.detLongSize
+        this.isRunDet = config.isRunDet
+        this.isRunCls = config.isRunCls
+        this.isRunRec = config.isRunRec
+        this.isUseOpencl = config.isUseOpencl
+        this.isDrwwTextPositionBox = config.isDrwwTextPositionBox
     }
 
 }

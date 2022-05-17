@@ -45,6 +45,11 @@ enum class L3CacheSetMethod {
 // return true if current device supports OpenCL model
 LITE_API bool IsOpenCLBackendValid(bool check_fp16_valid = false);
 
+// return current opencl device type,
+// if opencl not enabled or IsOpenCLBackendValid return false, it will return -1
+// UNKNOWN:0, QUALCOMM_ADRENO:1, ARM_MALI:2, IMAGINATION_POWERVR:3, OTHERS:4,
+LITE_API int GetOpenCLDeviceType();
+
 struct LITE_API Tensor {
   explicit Tensor(void* raw);
   explicit Tensor(const void* raw);
@@ -57,6 +62,8 @@ struct LITE_API Tensor {
 
   template <typename T>
   T* mutable_data(TargetType type = TargetType::kHost) const;
+
+  void* mutable_metal_data(void* ptr) const;
 
   // Share external memory. Note: ensure that the data pointer is in a valid
   // state
@@ -111,6 +118,9 @@ class LITE_API PaddlePredictor {
   // Get output names
   virtual std::vector<std::string> GetParamNames();
 
+  /// Release all tmp tensor to compress the size of the memory pool.
+  virtual bool TryShrinkMemory() = 0;
+
   // Get Input by name
   virtual std::unique_ptr<Tensor> GetInputByName(const std::string& name) = 0;
 
@@ -150,8 +160,31 @@ class LITE_API ConfigBase {
   // Set the cached npu/xpu/rknpu/apu offline model from the buffers
   std::map<std::string, std::pair<std::vector<char>, std::vector<char>>>
       subgraph_model_cache_buffers_{};
+  // The selected NNAdapter devices to build and run the model.
+  std::vector<std::string> nnadapter_device_names_{};
+  // The NNAdapter context properties for device configuration, model
+  // compilation and execution
+  std::string nnadapter_context_properties_{};
+  // The directory to find and store the compiled NNAdapter models.
+  std::string nnadapter_model_cache_dir_{""};
+  // The buffers for loading the compiled NNAdapter models from memory.
+  std::map<std::string, std::vector<char>> nnadapter_model_cache_buffers_{};
+  // The custom configuration file or buffer for the NNAdapter subgraph
+  // partition, here is an example:
+  // op_type:in_var_name_0,in_var_name1:out_var_name_0,out_var_name1
+  // op_type::out_var_name_0
+  // op_type:in_var_name_0
+  // op_type
+  std::string nnadapter_subgraph_partition_config_path_{};
+  std::string nnadapter_subgraph_partition_config_buffer_{};
   int device_id_{0};
   int x86_math_num_threads_ = 1;
+
+  std::string metal_path_;
+  bool metal_use_mps_{false};
+  bool metal_use_aggressive_{false};
+  void* metal_device_{nullptr};
+  bool metal_use_memory_reuse_{false};
 
  public:
   explicit ConfigBase(PowerMode mode = LITE_POWER_NO_BIND, int threads = 1);
@@ -197,12 +230,76 @@ class LITE_API ConfigBase {
   subgraph_model_cache_buffers() const {
     return subgraph_model_cache_buffers_;
   }
+  // Check if the NNAdapter device is valid.
+  bool check_nnadapter_device_name(const std::string& device_name);
+  // Choose the NNAdapter devices to build and run the model.
+  void set_nnadapter_device_names(
+      const std::vector<std::string>& device_names) {
+    nnadapter_device_names_ = device_names;
+  }
+  const std::vector<std::string>& nnadapter_device_names() const {
+    return nnadapter_device_names_;
+  }
+  // Set the context properties by key-value map for NNAdapter device
+  // configuration, model compilation and execution
+  // Such as "HUAWEI_ASCEND_NPU_SELECTED_DEVICE_IDS=0;"
+  void set_nnadapter_context_properties(const std::string& context_properties) {
+    nnadapter_context_properties_ = context_properties;
+  }
+  const std::string& nnadapter_context_properties() const {
+    return nnadapter_context_properties_;
+  }
+  // Enable caching and set the directory to search and store the compiled
+  // NNAdapter models in the file system.
+  void set_nnadapter_model_cache_dir(const std::string& model_cache_dir) {
+    nnadapter_model_cache_dir_ = model_cache_dir;
+  }
+  const std::string& nnadapter_model_cache_dir() const {
+    return nnadapter_model_cache_dir_;
+  }
+  // Set the buffers for loading the compiled NNAdapter models from memory.
+  void set_nnadapter_model_cache_buffers(
+      const std::string& model_cache_token,
+      const std::vector<char>& model_cache_buffer);
+  const std::map<std::string, std::vector<char>>&
+  nnadapter_model_cache_buffers() const {
+    return nnadapter_model_cache_buffers_;
+  }
+  // Enable the custom subgraph partition for NNAdapter by providing the
+  // configuration file or buffer
+  void set_nnadapter_subgraph_partition_config_path(
+      const std::string& subgraph_partition_config_path) {
+    nnadapter_subgraph_partition_config_path_ = subgraph_partition_config_path;
+  }
+  const std::string& nnadapter_subgraph_partition_config_path() const {
+    return nnadapter_subgraph_partition_config_path_;
+  }
+  void set_nnadapter_subgraph_partition_config_buffer(
+      const std::string& subgraph_partition_config_buffer) {
+    nnadapter_subgraph_partition_config_buffer_ =
+        subgraph_partition_config_buffer;
+  }
+  const std::string& nnadapter_subgraph_partition_config_buffer() const {
+    return nnadapter_subgraph_partition_config_buffer_;
+  }
   // set Device ID
   void set_device_id(int device_id) { device_id_ = device_id; }
   int get_device_id() const { return device_id_; }
   // set x86_math_num_threads
   void set_x86_math_num_threads(int threads);
   int x86_math_num_threads() const;
+
+  void set_metal_lib_path(const std::string& path);
+  void set_metal_use_mps(bool flag);
+  void set_metal_use_aggressive(bool flag);
+  void set_metal_device(void* device);
+  void set_metal_use_memory_reuse(bool flag);
+
+  std::string metal_lib_path() const { return metal_path_; }
+  bool metal_use_mps() const { return metal_use_mps_; }
+  bool metal_use_aggressive() const { return metal_use_aggressive_; }
+  void* metal_device() const { return metal_device_; }
+  bool metal_use_memory_reuse() const { return metal_use_memory_reuse_; }
 };
 
 class LITE_API CxxModelBuffer {
@@ -233,6 +330,8 @@ class LITE_API CxxConfig : public ConfigBase {
   std::vector<std::string> passes_internal_{};
   bool quant_model_{false};  // Enable post_quant_dynamic in opt
   QuantType quant_type_{QuantType::QUANT_INT16};
+  bool sparse_model_{false};  // Enable sparse_conv_detect_pass in opt
+  float sparse_threshold_{0.6f};
   std::map<int, std::vector<std::shared_ptr<void>>>
       preferred_inputs_for_warmup_;
 #ifdef LITE_WITH_CUDA
@@ -311,8 +410,10 @@ class LITE_API CxxConfig : public ConfigBase {
   // XPU only, set the size of the workspace memory from L3 cache for the
   // current thread.
   // **DEPRECATED**, use set_xpu_l3_cache_method() in the future
-  void set_xpu_workspace_l3_size_per_thread(int l3_size = 0xfffc00);
+  void set_xpu_workspace_l3_size_per_thread(int l3_size = 0x4000000);
   void set_xpu_l3_cache_method(size_t l3_size, bool locked = false);
+
+  void set_xpu_gm_workspace_method(size_t gm_size);
 
   void set_xpu_conv_autotune(bool autotune = true,
                              const std::string& autotune_file = "");
@@ -346,6 +447,13 @@ class LITE_API CxxConfig : public ConfigBase {
   bool quant_model() const { return quant_model_; }
   void set_quant_type(QuantType quant_type) { quant_type_ = quant_type; }
   QuantType quant_type() const { return quant_type_; }
+
+  void set_sparse_model(bool sparse_model) { sparse_model_ = sparse_model; }
+  bool sparse_model() const { return sparse_model_; }
+  void set_sparse_threshold(float sparse_threshold) {
+    sparse_threshold_ = sparse_threshold;
+  }
+  float sparse_threshold() const { return sparse_threshold_; }
 };
 
 /// MobileConfig is the config for the light weight predictor, it will skip

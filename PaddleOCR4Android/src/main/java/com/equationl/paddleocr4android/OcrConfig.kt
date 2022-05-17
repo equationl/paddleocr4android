@@ -1,5 +1,7 @@
 package com.equationl.paddleocr4android
 
+import com.equationl.paddleocr4android.bean.OcrResult
+
 data class OcrConfig(
     /**
      * 模型路径（默认为 assets 目录下的预装模型）
@@ -22,31 +24,52 @@ data class OcrConfig(
      * */
     var cpuPowerMode: CpuPowerMode = CpuPowerMode.LITE_POWER_HIGH,
     /**
-     * 颜色模式
-     * */
-    var inputColorFormat: InputColorFormat = InputColorFormat.BGR,
-    /**
-     * Input Shape: (1,1,max_width_height) or (1,3,max_width_height)
-     * */
-    var inputShape: LongArray = longArrayOf(1,3,960),
-    /**
-     * Input Mean: (channel/255-mean)/std
-     * */
-    var inputMean: FloatArray = floatArrayOf(0.485F, 0.456F, 0.406F),
-    /**
-     * Input Std: (channel/255-mean)/std
-     * */
-    var inputStd: FloatArray = floatArrayOf(0.229F, 0.224F, 0.225F),
-    /**
      * Score Threshold
      * */
     var scoreThreshold: Float = 0.1f,
 
+    var detLongSize: Int = 960,
+
+    /**
+     * 检测模型文件名
+     * */
     var detModelFilename: String = "ch_ppocr_mobile_v2.0_det_opt.nb",
 
+    /**
+     * 识别模型文件名
+     * */
     var recModelFilename: String = "ch_ppocr_mobile_v2.0_rec_opt.nb",
 
-    var clsModelFilename: String = "ch_ppocr_mobile_v2.0_cls_opt.nb"
+    /**
+     * 分类模型文件名
+     * */
+    var clsModelFilename: String = "ch_ppocr_mobile_v2.0_cls_opt.nb",
+
+    /**
+     * 是否运行检测模型
+     * */
+    var isRunDet: Boolean = true,
+
+    /**
+     * 是否运行分类模型
+     * */
+    var isRunCls: Boolean = true,
+
+    /**
+     * 是否运行识别模型
+     * */
+    var isRunRec: Boolean = true,
+
+    var isUseOpencl: Boolean = false,
+
+    /**
+     * 是否绘制文字位置
+     *
+     * 如果为 true， [OcrResult.imgWithBox] 返回的是在输入 Bitmap 上绘制出文本位置框的 Bitmap
+     *
+     * 否则，[OcrResult.imgWithBox] 将会直接返回输入 Bitmap
+     * */
+    var isDrwwTextPositionBox: Boolean = false
 )
 
 enum class CpuPowerMode {
@@ -74,9 +97,4 @@ enum class CpuPowerMode {
      * RAND_LOW
      * */
     LITE_POWER_RAND_LOW
-}
-
-enum class InputColorFormat {
-    BGR,
-    RGB
 }
