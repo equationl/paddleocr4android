@@ -34,7 +34,10 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl:paddleocr4android:v1.1.0'
+    implementation 'com.github.equationl:paddleocr4android:v1.1.1'
+    
+    // 如果需要包含 OpenCL 预测库，请使用下面这个依赖
+    //implementation 'com.github.equationl:paddleocr4android:v1.1.1-OpenCL'
 }
 ```
 
@@ -188,6 +191,13 @@ ocr.run(bitmap3, object : OcrRunCallback {
 有任何问题请先尝试 demo 或阅读源码，如果无法解决请提 issue
 
 国内镜像地址： [paddleocr4android](https://gitee.com/equation/paddleocr4android)
+
+## 6.问题解决
+- 提示 ` Error: This model is not supported, because kernel for 'io_copy' is not supported by Paddle-Lite.`
+
+该提示表示您使用的模型需要 OpenCL 预测库支持。解决办法：
+
+使用包含 OpenCL 预测库的依赖。
 
 
 # 更新记录
