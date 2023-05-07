@@ -11,6 +11,16 @@
 
 ![截图](/doc/screenshot1.jpg)
 
+# 注意
+
+本库基于 *Paddle-Lite* 部署，因此只支持 Paddle-Lite 模型（格式 `.nb`） 并且目前尚未支持 PP-OCRv3 模型。
+
+如果您需要使用 PP-OCRv3 模型或自训练的模型，且对模型和预测库大小不敏感的可以尝试使用 `fastdeploy` 部署，目前官方提供的 `fastdeploy` 在安卓上部署非常简单易懂，基本可以做到 “开箱即用”，有需要的可以自行前往官网下载使用：
+
+[fastdeploy-android](https://github.com/PaddlePaddle/PaddleOCR/tree/dygraph/deploy/fastdeploy/android)
+
+如果需要使用的人多的话，我也会考虑二次封装一个类似于本库的基于 `fastdeploy` 的库。
+
 # 使用方法
 
 无需进行任何配置，直接运行 demo 即可体验。
