@@ -46,7 +46,7 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl.paddleocr4android:fastdeplyocr:v1.2.2'
+    implementation 'com.github.equationl.paddleocr4android:fastdeplyocr:v1.2.3'
     
 }
 ```

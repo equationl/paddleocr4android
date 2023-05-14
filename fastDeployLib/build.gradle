@@ -10,8 +10,8 @@ afterEvaluate {
         publications {
             release(MavenPublication){
                 groupId = 'com.equationl.paddleocr4android'
-                artifactId = 'fastdeplylib'
-                version = 'V1.2.2'
+                artifactId = 'fastDeployLib'
+                version = 'V1.2.3'
             }
         }
     }
