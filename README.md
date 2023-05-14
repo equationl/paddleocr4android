@@ -51,10 +51,6 @@ dependencies {
 }
 ```
 
-**请将版本号替换为最新版本**
-
-当前最新版本： [![](https://jitpack.io/v/equationl/paddleocr4android.svg)](https://jitpack.io/#equationl/paddleocr4android)
-
 ## 2.下载模型
 
 ### 下载模型的渠道

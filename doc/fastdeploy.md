@@ -46,16 +46,10 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl:paddleocr4android:v1.1.1'
+    implementation 'com.github.equationl:fastdeplyocr:v1.2.0'
     
-    // 如果需要包含 OpenCL 预测库，请使用下面这个依赖
-    //implementation 'com.github.equationl:paddleocr4android:v1.1.1-OpenCL'
 }
 ```
-
-**请将版本号替换为最新版本**
-
-当前最新版本： [![](https://jitpack.io/v/equationl/paddleocr4android.svg)](https://jitpack.io/#equationl/paddleocr4android)
 
 ## 2.下载模型
 
