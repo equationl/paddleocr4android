@@ -46,14 +46,14 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl:fastdeplyocr:v1.2.0'
+    implementation 'com.github.equationl.paddleocr4android:fastdeplyocr:v1.2.2'
     
 }
 ```
 
 ## 2.下载模型
 
-模型下载地址: [PP-OCR系列模型列表-Lite模型](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.6/doc/doc_ch/models_list.md)
+模型下载地址: [PP-OCR系列模型列表](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.6/doc/doc_ch/models_list.md)
 
 当然，你也可以使用自己训练的模型。
 

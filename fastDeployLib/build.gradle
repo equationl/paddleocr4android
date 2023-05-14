@@ -1,2 +1,18 @@
+plugins {
+    id 'maven-publish'
+}
+
 configurations.maybeCreate("default")
 artifacts.add("default", file('fastdeploy-android-sdk.aar'))
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication){
+                groupId = 'com.equationl.paddleocr4android'
+                artifactId = 'fastdeplylib'
+                version = 'V1.2.2'
+            }
+        }
+    }
+}
