@@ -40,6 +40,8 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
     implementation project(":fastdeployOCR")
+    //implementation 'com.github.equationl.paddleocr4android:fastDeployLib:v1.2.3'
+    //implementation 'com.github.equationl.paddleocr4android:fastdeplyocr:v1.2.3'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
