@@ -38,14 +38,15 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.equationl.paddleocr4android'
                 artifactId = 'fastdeplyocr'
-                version = 'V1.2.0'
+                version = 'V1.2.1'
             }
         }
     }
 }
 
 dependencies {
-    api fileTree(include: ['*.aar'], dir: 'libs')
+
+    api project(":fastDeployLib")
 
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
