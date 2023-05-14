@@ -19,11 +19,11 @@
 
 [fastdeploy-android](https://github.com/PaddlePaddle/PaddleOCR/tree/dygraph/deploy/fastdeploy/android)
 
-如果需要使用的人多的话，我也会考虑二次封装一个类似于本库的基于 `fastdeploy` 的库。
+也可以使用我二次封装的类似于本库的 [fastDeployOCR](./doc/fastdeploy.md) 。
 
 # 使用方法
 
-无需进行任何配置，直接运行 demo 即可体验。
+无需进行任何配置，直接运行 demo （[app](./app)）即可体验。
 
 如需集成至您自己的项目中，请按下述步骤进行：
 

@@ -10,3 +10,5 @@ dependencyResolutionManagement {
 rootProject.name = "PaddleOCR4Android"
 include ':app'
 include ':PaddleOCR4Android'
+include ':fastdeployOCR'
+include ':fastdeploydemo'
