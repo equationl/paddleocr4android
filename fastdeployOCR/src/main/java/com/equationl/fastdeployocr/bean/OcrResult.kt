@@ -2,6 +2,7 @@ package com.equationl.fastdeployocr.bean
 
 import android.graphics.Bitmap
 import android.graphics.Point
+import com.baidu.paddle.fastdeploy.vision.OCRResult
 
 data class OcrResult(
     /**
@@ -20,6 +21,10 @@ data class OcrResult(
      * 格式化后的原始识别结果
      * */
     val outputRawResult: ArrayList<OcrResultModel>,
+    /**
+     * fastDeploy 返回的最原始的结果
+     * */
+    val rawOCRResult: OCRResult
 )
 
 data class OcrResultModel (
@@ -29,7 +34,7 @@ data class OcrResultModel (
     val label: String,
     /**识别到的文字的置信度*/
     val confidence: Float,
-    /**检测到的文字方向分类*/
+    /**检测到的文字方向 0° 或 180° */
     val cls_label: String,
     /**检测到的文字方向分类置信度*/
     val cls_confidenceL: Float

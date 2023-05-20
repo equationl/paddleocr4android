@@ -176,17 +176,19 @@ class OCR(private val context: Context) {
         File(realModelPath, "$detModelFileName.pdiparams").let {
             if (!it.exists()) throw NoSuchFileException(it, reason = "Load Det Model Fail")
         }
-        File(realModelPath, "$clsModelFileName.pdmodel").let {
-            if (!it.exists()) throw NoSuchFileException(it, reason = "Load Cls Model Fail")
-        }
-        File(realModelPath, "$clsModelFileName.pdiparams").let {
-            if (!it.exists()) throw NoSuchFileException(it, reason = "Load Cls Model Fail")
-        }
         File(realModelPath, "$recModelFileName.pdmodel").let {
             if (!it.exists()) throw NoSuchFileException(it, reason = "Load Rec Model Fail")
         }
         File(realModelPath, "$recModelFileName.pdiparams").let {
             if (!it.exists()) throw NoSuchFileException(it, reason = "Load Rec Model Fail")
+        }
+        if (runType == RunType.All) { // 只有运行模式是全部运行时才需要检查cls模型
+            File(realModelPath, "$clsModelFileName.pdmodel").let {
+                if (!it.exists()) throw NoSuchFileException(it, reason = "Load Cls Model Fail")
+            }
+            File(realModelPath, "$clsModelFileName.pdiparams").let {
+                if (!it.exists()) throw NoSuchFileException(it, reason = "Load Cls Model Fail")
+            }
         }
         File(realModelPath, "$labelPath").let {
             if (!it.exists()) throw NoSuchFileException(it, reason = "Load Labels Fail")
@@ -277,8 +279,8 @@ class OCR(private val context: Context) {
                             point,
                             s,
                             rawResult.mRecScores[index],
-                            rawResult.mClsLabels[0].toString(),  // TODO 这里需要再确定一下
-                            rawResult.mClsScores[0]
+                            if (rawResult.mClsLabels[index] == 0) "0" else "180",
+                            rawResult.mClsScores[index]
                         )
                     )
                 }
@@ -288,7 +290,8 @@ class OCR(private val context: Context) {
                 simpleText,
                 inferenceTime,
                 bitmap,
-                rawResultList
+                rawResultList,
+                rawResult
             )
 
             return Result.success(ocrResult)

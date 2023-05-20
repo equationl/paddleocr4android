@@ -2,28 +2,30 @@
 
 # 简介
 
-该库是对 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 中的 [android_demo](https://github.com/PaddlePaddle/PaddleOCR/tree/release/2.5/deploy/android_demo) 进行二次封装的库。
-对于只想体验或者快速上手使用的安卓开发者，该库对官方 demo 进行了简单的封装，使其可以直接上手使用，而无需关心 PaddleOCR 的实现，亦无需进行繁琐的配置。
+该库是使用 [fastDeploy](https://github.com/PaddlePaddle/PaddleOCR/tree/dygraph/deploy/fastdeploy/android) 部署在安卓端使用 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 的二次封装库。
 
-基于 *Paddle-Lite* 部署
+对于只想体验或者快速上手使用的安卓开发者，该库对其进行了简单的封装，使其可以直接上手使用，而无需关心 PaddleOCR 的实现，亦无需进行繁琐的配置。
+
+基于 *fastDeploy* 部署
 
 截图：
 
-![截图](/doc/screenshot1.jpg)
+![截图](/doc/screenshot2.jpg)
 
 # 注意
 
-本库基于 *Paddle-Lite* 部署，因此只支持 Paddle-Lite 模型（格式 `.nb`） 并且目前尚未支持 PP-OCRv3 模型。
+本库基于 *fastDeploy* 部署，同时支持 Paddle 原始模型和量化模型（.pdmodel、pdiparams），并且支持 PPOCRv2 和 PPOCRv3。
 
-如果您需要使用 PP-OCRv3 模型或自训练的模型，且对模型和预测库大小不敏感的可以尝试使用 `fastdeploy` 部署，目前官方提供的 `fastdeploy` 在安卓上部署非常简单易懂，基本可以做到 “开箱即用”，有需要的可以自行前往官网下载使用：
+但是使用本库可能会大幅增加安装包体积，如果对安装包体积敏感，推荐使用 *[Paddle-Lite](./doc/paddlelite.md)* 部署，但是使用 *Paddle-Lite* 部署将只支持 OPT 后的模型（.nb），并且目前尚未支持 PPOCRv3。
 
-[fastdeploy-android](https://github.com/PaddlePaddle/PaddleOCR/tree/dygraph/deploy/fastdeploy/android)
-
-也可以使用我二次封装的类似于本库的 [fastDeployOCR](./doc/fastdeploy.md) 。
 
 # 使用方法
 
-无需进行任何配置，直接运行 demo （[app](./app)）即可体验。
+因为 Paddle 模型比较大，所以没有集成模型到 demo （[fastdeploydemo](./fastdeploydemo)）中，如果想要运行 demo，您需要自行下载模型后放入 [./fastdeploydemo/src/main/assets](../fastdeploydemo/src/main/assets) 中:
+
+![截图](/doc/screenshot3.png)
+
+将模型放入后运行即可。
 
 如需集成至您自己的项目中，请按下述步骤进行：
 
@@ -44,53 +46,43 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl:paddleocr4android:v1.1.1'
+    implementation 'com.github.equationl.paddleocr4android:fastdeplyocr:v1.2.6'
     
-    // 如果需要包含 OpenCL 预测库，请使用下面这个依赖
-    //implementation 'com.github.equationl:paddleocr4android:v1.1.1-OpenCL'
 }
 ```
 
 ## 2.下载模型
 
-### 下载模型的渠道
-1. 去官网下载
+模型下载地址: [PP-OCR系列模型列表](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.6/doc/doc_ch/models_list.md)
 
-模型下载地址: [Paddle-Lite模型](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.5/doc/doc_ch/models_list.md#Paddle-Lite模型)
+当然，你也可以使用自己训练的模型。
 
-**注意：使用本库 *v1.1.0* 以上版本（包括 v1.1.0 ）时，请下载 Paddle-Lite 版本为 v2.10 的模型；*v1.1.0* 以下版本时请下载 v2.9 的模型。**
+需要注意的是，文本检测、文本识别、文本方向分类 模型各有两个文件：\*.pdmodel、\*.pdiparams
 
-更多模型请自行前往 PaddleOCR 官网下载。
-
-2. 直接使用demo中的模型
-
-demo 中已经集成了 ch_PP-OCRv2 模型，可以直接复制使用
-
-文件路径 /app/src/main/assets/models/ch_PP-OCRv2/
-
-需要注意的是，由于是基于 *Paddle-Lite* 部署，所以只能使用 `*.nb` 格式的slim模型。
-
-请将下载好的三个模型：
+请将下载好的三个模型，六个文件：
 
 ```
-xx_cls.nb
-xx_det.nb
-xx_rec.nb
+xx_cls.pdmodel
+xx_cls.pdiparams
+xx_det.pdmodel
+xx_det.pdiparams
+xx_rec.pdmodel
+xx_rec.pdiparams
 ```
 
-放置到手机任意目录或项目的 **assets** 的目录下。
+放置到手机任意目录或项目的 **assets** 目录下。
 
 三个模型分别为：
 
-| 文件名 | 模型名称 | 说明 |
-| ----- | ------ | ---- |
-| xx_cls.nb | 文本方向分类模型 | 用于文本方向分类 |
-| xx_det.nb | 检测模型 | 用于检测文本位置 |
-| xx_rec.nb | 识别模型 | 用于识别文本内容 |
+| 文件名                             | 模型名称     | 说明       |
+|---------------------------------|----------|----------|
+| xx_cls.pdmodel、xx_cls.pdiparams | 文本方向分类模型 | 用于文本方向分类 |
+| xx_det.pdmodel、xx_det.pdiparams | 检测模型     | 用于检测文本位置 |
+| xx_rec.pdmodel、xx_rec.pdiparams | 识别模型     | 用于识别文本内容 |
 
 *建议测试时直接放到 assets 中，避免放到手机目录中时由于权限问题而无法读取模型*
 
-*正式使用时请自行实现模型的下载，建议不要直接将模型放在 assets 中打包进安装包*
+*由于模型文件较大，正式使用时请自行实现模型的下载，建议不要直接将模型放在 assets 中打包进安装包*
 
 ## 3.加载模型
 
@@ -100,24 +92,30 @@ val config = OcrConfig()
 //config.labelPath = null
 
 
-config.modelPath = "models/ch_PP-OCRv2" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
+config.modelPath = "models" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
 //config.modelPath = "/sdcard/Android/data/com.equationl.paddleocr4android.app/files/models" // 使用 "/" 表示手机储存路径，测试时请将下载的三个模型放置于该目录下
-config.clsModelFilename = "cls.nb" // cls 模型文件名
-config.detModelFilename = "det_db.nb" // det 模型文件名
-config.recModelFilename = "rec_crnn.nb" // rec 模型文件名
+config.clsModelFileName = "cls" // cls 模型文件名
+config.detModelFileName = "det" // det 模型文件名
+config.recModelFileName = "rec" // rec 模型文件名
 
 // 运行全部模型
-// 请根据需要配置，三项全开识别率最高；如果只开识别几乎无法正确识别，至少需要搭配检测或分类其中之一
-// 也可单独运行 检测模型 获取文本位置
-config.isRunDet = true
-config.isRunCls = true
-config.isRunRec = true
+config.runType = RunType.All
 
 // 使用所有核心运行
-config.cpuPowerMode = CpuPowerMode.LITE_POWER_FULL
+config.cpuPowerMode = LitePowerMode.LITE_POWER_FULL
 
 // 绘制文本位置
 config.isDrwwTextPositionBox = true
+
+// 如果是原始模型，则使用 FP16 精度
+config.recRunPrecision = RunPrecision.LiteFp16
+config.detRunPrecision = RunPrecision.LiteFp16
+config.clsRunPrecision = RunPrecision.LiteFp16
+
+// 如果是量化模型则使用 int8 精度
+//config.recRunPrecision = RunPrecision.LiteInt8
+//config.detRunPrecision = RunPrecision.LiteInt8
+//config.clsRunPrecision = RunPrecision.LiteInt8
 
 // 1.同步初始化
 /*ocr.initModelSync(config).fold(
@@ -147,19 +145,20 @@ ocr.initModel(config, object : OcrInitCallback {
 })
 ```
 
-更多配置请自行查看 [OcrConfig.kt](/PaddleOCR4Android/src/main/java/com/equationl/paddleocr4android)
+更多配置请自行查看 [OcrConfig.kt](../fastdeployOCR/src/main/java/com/equationl/fastdeployocr/OcrConfig.kt)
 
 ## 4.开始使用
 
 ```kotlin
-// 1.同步识别
+            // 1.同步识别
 /*val bitmap = BitmapFactory.decodeResource(resources, R.drawable.test2)
-          ocr.runSync(bitmap)
+ocr.runSync(bitmap)
 
-          val bitmap2 = BitmapFactory.decodeResource(resources, R.drawable.test3)
-          ocr.runSync(bitmap2)*/
+val bitmap2 = BitmapFactory.decodeResource(resources, R.drawable.test3)
+ocr.runSync(bitmap2)*/
 
 // 2.异步识别
+resultText.text = "开始识别"
 val bitmap3 = BitmapFactory.decodeResource(resources, R.drawable.test4)
 ocr.run(bitmap3, object : OcrRunCallback {
     override fun onSuccess(result: OcrResult) {
@@ -170,14 +169,9 @@ ocr.run(bitmap3, object : OcrRunCallback {
 
         var text = "识别文字=\n$simpleText\n识别时间=$inferenceTime ms\n更多信息=\n"
 
-        val wordLabels = ocr.getWordLabels()
         outputRawResult.forEachIndexed { index, ocrResultModel ->
-            // 文字索引（crResultModel.wordIndex）对应的文字可以从字典（wordLabels） 中获取
-            ocrResultModel.wordIndex.forEach {
-                Log.i(TAG, "onSuccess: text = ${wordLabels[it]}")
-            }
             // 文字方向 ocrResultModel.clsLabel 可能为 "0" 或 "180"
-            text += "$index: 文字方向：${ocrResultModel.clsLabel}；文字方向置信度：${ocrResultModel.clsConfidence}；识别置信度 ${ocrResultModel.confidence}；文字索引位置 ${ocrResultModel.wordIndex}；文字位置：${ocrResultModel.points}\n"
+            text += "$index: 文字方向：${ocrResultModel.cls_label}；文字方向置信度：${ocrResultModel.cls_confidenceL}；识别置信度 ${ocrResultModel.confidence}；；文字位置：${ocrResultModel.points}\n"
         }
 
         resultText.text = text
@@ -196,56 +190,14 @@ ocr.run(bitmap3, object : OcrRunCallback {
 
 有任何问题请先尝试 demo 或阅读源码，如果无法解决请提 issue
 
-国内镜像地址： [paddleocr4android](https://gitee.com/equation/paddleocr4android)
 
 ## 6.问题解决
-- 提示 ` Error: This model is not supported, because kernel for 'io_copy' is not supported by Paddle-Lite.`
-
-该提示表示您使用的模型需要 OpenCL 预测库支持。解决办法：
-
-使用包含 OpenCL 预测库的依赖。
 
 
 # 更新记录
-**v1.1.0**
 
-- PaddleLite 更新至 v2.10
-- 支持单独运行 分类、检测、识别 模型
-- API 变动：
+**v1.2.6**
 
-```kotlin
-// 移除配置项：
-
-    var inputColorFormat: InputColorFormat
-    var inputShape: LongArray
-    var inputMean: FloatArray
-    var inputStd: FloatArray
-    
-// 增加配置项：
-    
-    /**
-     * 是否运行检测模型
-     * */
-    var isRunDet: Boolean = true
-
-    /**
-     * 是否运行分类模型
-     * */
-    var isRunCls: Boolean = true
-
-    /**
-     * 是否运行识别模型
-     * */
-    var isRunRec: Boolean = true
-
-    var isUseOpencl: Boolean = false
-
-    /**
-     * 是否绘制文字位置
-     *
-     * 如果为 true， [OcrResult.imgWithBox] 返回的是在输入 Bitmap 上绘制出文本位置框的 Bitmap
-     *
-     * 否则，[OcrResult.imgWithBox] 将会直接返回输入 Bitmap
-     * */
-    var isDrwwTextPositionBox: Boolean = false
-```
+- 更改返回结果中 `outputRawResult.cls_label` 为 "0" 或 "180"，分别表示检测到当前文本为 0° 或 180°
+- 返回结果新增一个 `rawOCRResult` 表示 fastDeploy 返回的原始识别结果
+- 修复运行模式为 `RunType.WithDet` 时也会检查 cls 模型的错误
