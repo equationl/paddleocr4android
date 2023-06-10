@@ -190,11 +190,22 @@ ocr.run(bitmap3, object : OcrRunCallback {
 
 有任何问题请先尝试 demo 或阅读源码，如果无法解决请提 issue
 
+### 混淆
+如果需要开启混淆，请在你的项目 `proguard-rules.pro` 中添加：
+
+```text
+-keep class com.baidu.paddle.fastdeploy.** { *; }
+```
+
 
 ## 6.问题解决
 
 
 # 更新记录
+
+**v1.2.7**
+
+- 移除无用依赖
 
 **v1.2.6**
 
