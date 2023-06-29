@@ -54,10 +54,16 @@ class OCR(private val context: Context) {
     private var isDrwwTextPositionBox: Boolean = false
 
     /**
-     * @return [PPOCRv3] or [PPOCRv2]
+     * 获取 PPOCR 示例
+     *
+     * @return [PPOCRv3] or [PPOCRv2]，如果尚未初始化，返回 null
      * */
-    fun getPredictor(): PPOCRBase {
-        return predictor
+    fun getPredictor(): PPOCRBase? {
+        if (this::predictor.isInitialized) {
+            return predictor
+        }
+
+        return null
     }
 
     /**
@@ -121,8 +127,7 @@ class OCR(private val context: Context) {
      * */
     @WorkerThread
     fun runSync(bitmap: Bitmap): Result<OcrResult> {
-
-        return if (!predictor.initialized()) {
+        return if (!this::predictor.isInitialized || !predictor.initialized()) {
             Result.failure(RunModelException("请先加载模型！"))
         } else {
             runModel(bitmap)
