@@ -203,6 +203,16 @@ ocr.run(bitmap3, object : OcrRunCallback {
 
 # 更新记录
 
+**v1.2.8**
+
+本次更新主要是优化了识别结果为空时的返回值：
+
+- 当识别结果为空时返回 `Result.failure(NoResultException())`
+- 当检测文本位置为空时 `OcrResultModel.points` 返回空列表
+- 当识别置信度为空时 `OcrResultModel.confidence` 返回 `-1f`
+- 当方向检测为空时 `OcrResultModel.cls_labelc` 返回 `-1`
+- 当方向检测置信度为空时 `OcrResultModel.cls_confidenceL` 返回 `-1f`
+
 **v1.2.7**
 
 - 移除无用依赖

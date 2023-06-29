@@ -19,6 +19,7 @@ import com.equationl.fastdeployocr.bean.OcrResultModel
 import com.equationl.fastdeployocr.callback.OcrInitCallback
 import com.equationl.fastdeployocr.callback.OcrRunCallback
 import com.equationl.fastdeployocr.exception.InitModelException
+import com.equationl.fastdeployocr.exception.NoResultException
 import com.equationl.fastdeployocr.exception.RunModelException
 import com.equationl.fastdeployocr.paddle.Utils
 import kotlinx.coroutines.CoroutineScope
@@ -258,29 +259,37 @@ class OCR(private val context: Context) {
                 rawResult = predictor.predict(bitmap, isDrwwTextPositionBox)
             }.toLong(DurationUnit.MILLISECONDS)
 
-            //if (rawResult.mInitialized) {
-            //    return Result.failure(RunModelException("运行模型错误，请检查是否正确初始化"))
-            //}
+            if (rawResult.mText.isNullOrEmpty()) {
+                throw NoResultException("Rec result is empty")
+            }
 
             val rawResultList = arrayListOf<OcrResultModel>()
             var simpleText = ""
             rawResult.mText.forEachIndexed { index: Int, s: String? ->
                 if (s != null) {
                     simpleText += "$s\n"
-                    val box = rawResult.mBoxes[index]
-                    val point = listOf(
-                        Point(box[0], box[1]),
-                        Point(box[2], box[3]),
-                        Point(box[4], box[5]),
-                        Point(box[6], box[7]),
-                    )
+                    val box = rawResult.mBoxes.getOrNull(index)
+                    val point = if (box == null) {
+                        listOf()
+                    }
+                    else {
+                        listOf(
+                            Point(box[0], box[1]),
+                            Point(box[2], box[3]),
+                            Point(box[4], box[5]),
+                            Point(box[6], box[7]),
+                        )
+                    }
+
+                    val clsLabel = rawResult.mClsLabels.getOrNull(index)
+
                     rawResultList.add(
                         OcrResultModel(
                             point,
                             s,
-                            rawResult.mRecScores[index],
-                            if (rawResult.mClsLabels[index] == 0) "0" else "180",
-                            rawResult.mClsScores[index]
+                            rawResult.mRecScores.getOrElse(index) { -1f },
+                            if (clsLabel == null) "-1" else if (clsLabel == 0) "0" else "180",
+                            rawResult.mClsScores.getOrElse(index) { -1f }
                         )
                     )
                 }
