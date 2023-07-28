@@ -1,8 +1,10 @@
 package com.equtionl.fastdeploydemo
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -15,6 +17,7 @@ import com.equationl.fastdeployocr.RunType
 import com.equationl.fastdeployocr.bean.OcrResult
 import com.equationl.fastdeployocr.callback.OcrInitCallback
 import com.equationl.fastdeployocr.callback.OcrRunCallback
+
 
 class MainActivity : AppCompatActivity() {
     private val TAG = "el, Main"
@@ -100,7 +103,8 @@ class MainActivity : AppCompatActivity() {
 
             // 2.异步识别
             resultText.text = "开始识别"
-            val bitmap3 = BitmapFactory.decodeResource(resources, R.drawable.test4)
+            val bitmap3 = getBitmap(R.drawable.test4)
+
             ocr.run(bitmap3, object : OcrRunCallback {
                 override fun onSuccess(result: OcrResult) {
                     val simpleText = result.simpleText
@@ -132,5 +136,19 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         // 释放
         ocr.releaseModel()
+    }
+
+    /**
+     * 自定义 option 获取 Drawable 中的图片，避免获取到的 Bitmap 被缩放
+     *
+     * 来自：https://blog.csdn.net/qiantanlong/article/details/87712906
+     * */
+    private fun getBitmap(resId: Int): Bitmap {
+        val options = BitmapFactory.Options()
+        val value = TypedValue()
+        resources.openRawResource(resId, value)
+        options.inTargetDensity = value.density
+        options.inScaled = false //不缩放
+        return BitmapFactory.decodeResource(resources, resId, options)
     }
 }
