@@ -200,6 +200,18 @@ ocr.run(bitmap3, object : OcrRunCallback {
 
 ## 6.问题解决
 
+### 标准 C++ 库（libc++_shared.so）冲突相关问题
+
+报错：
+1. `dlopen failed: cannot locate symbol "__emutls_get_address" referenced`
+2. `2 files found with path 'lib/arm64-v8a/libc++_shared.so' from inputs`
+3. 项目或其他第三方库也引用了标准库导致互相之间不兼容的各种问题
+
+解决方法参考：
+
+1. [和OpenCV的版本不兼容](https://github.com/equationl/paddleocr4android/issues/32)
+2. [加载模型的时候报错](https://github.com/equationl/paddleocr4android/issues/26)
+
 
 # 更新记录
 
