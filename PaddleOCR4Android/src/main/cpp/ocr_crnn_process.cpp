@@ -22,7 +22,10 @@
 
 const std::string CHARACTER_TYPE = "ch";
 const int MAX_DICT_LENGTH = 6624;
-const std::vector<int> REC_IMAGE_SHAPE = {3, 32, 320};
+//ch_PP-OCRv2
+//const std::vector<int> REC_IMAGE_SHAPE = {3, 32, 320};
+//ch_PP-OCRv3
+const std::vector<int> REC_IMAGE_SHAPE = {3, 48, 320};
 
 static cv::Mat crnn_resize_norm_img(cv::Mat img, float wh_ratio) {
   int imgC = REC_IMAGE_SHAPE[0];
@@ -30,7 +33,10 @@ static cv::Mat crnn_resize_norm_img(cv::Mat img, float wh_ratio) {
   int imgH = REC_IMAGE_SHAPE[1];
 
   if (CHARACTER_TYPE == "ch")
-    imgW = int(32 * wh_ratio);
+    //ch_PP-OCRv2
+    //imgW = int(32 * wh_ratio);
+    //ch_PP-OCRv3
+    imgW = int(48 * wh_ratio);
 
   float ratio = float(img.cols) / float(img.rows);
   int resize_w = 0;
