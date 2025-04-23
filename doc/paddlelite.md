@@ -13,13 +13,9 @@
 
 # 注意
 
-本库基于 *Paddle-Lite* 部署，因此只支持 Paddle-Lite 模型（格式 `.nb`） 并且目前尚未支持 PP-OCRv3 模型。
+本库基于 *Paddle-Lite* 部署，因此只支持 Paddle-Lite 模型（格式 `.nb`） 目前 Paddle-Lite 版本为 2.14-rc，已支持 PPOCRv4 模型。
 
-如果您需要使用 PP-OCRv3 模型或自训练的模型，且对模型和预测库大小不敏感的可以尝试使用 `fastdeploy` 部署，目前官方提供的 `fastdeploy` 在安卓上部署非常简单易懂，基本可以做到 “开箱即用”，有需要的可以自行前往官网下载使用：
-
-[fastdeploy-android](https://github.com/PaddlePaddle/PaddleOCR/tree/dygraph/deploy/fastdeploy/android)
-
-也可以使用我二次封装的类似于本库的 [fastDeployOCR](/README.md) 。
+您也可以尝试使用 [fastDeployOCR](/README.md) 部署。
 
 # 使用方法
 
@@ -44,7 +40,7 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl:paddleocr4android:v1.1.1'
+    implementation 'com.github.equationl:paddleocr4android:v1.2.0'
     
     // 如果需要包含 OpenCL 预测库，请使用下面这个依赖
     //implementation 'com.github.equationl:paddleocr4android:v1.1.1-OpenCL'
@@ -56,17 +52,17 @@ dependencies {
 ### 下载模型的渠道
 1. 去官网下载
 
-模型下载地址: [Paddle-Lite模型](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.5/doc/doc_ch/models_list.md#Paddle-Lite模型)
+模型下载地址: [Paddle-Lite模型](https://paddlepaddle.github.io/PaddleOCR/latest/ppocr/model_list.html)
 
-**注意：使用本库 *v1.1.0* 以上版本（包括 v1.1.0 ）时，请下载 Paddle-Lite 版本为 v2.10 的模型；*v1.1.0* 以下版本时请下载 v2.9 的模型。**
+**注意：当前本库最新版本使用的 Paddle-Lite 版本为 2.14-rc，已支持 PPOCRv4 模型，为了保证良好的识别效果，请使用相同版本的 paddle-lite [opt 工具](https://www.paddlepaddle.org.cn/lite/v2.12/user_guides/model_optimize_tool.html)对模型进行量化**
 
 更多模型请自行前往 PaddleOCR 官网下载。
 
 2. 直接使用demo中的模型
 
-demo 中已经集成了 ch_PP-OCRv2 模型，可以直接复制使用
+demo 中已经集成了 ch_PP-OCRv2 模型（官方提供）和 ch_PP-OCRv4 模型（@[dwh](https://github.com/dengwhao)提供），可以直接复制使用
 
-文件路径 /app/src/main/assets/models/ch_PP-OCRv2/
+文件路径 /app/src/main/assets/models/ch_PP-OCRv2/ 以及 /app/src/main/assets/models/ch_PP-OCRv4/
 
 需要注意的是，由于是基于 *Paddle-Lite* 部署，所以只能使用 `*.nb` 格式的slim模型。
 
@@ -82,11 +78,11 @@ xx_rec.nb
 
 三个模型分别为：
 
-| 文件名 | 模型名称 | 说明 |
-| ----- | ------ | ---- |
+| 文件名       | 模型名称     | 说明       |
+|-----------|----------|----------|
 | xx_cls.nb | 文本方向分类模型 | 用于文本方向分类 |
-| xx_det.nb | 检测模型 | 用于检测文本位置 |
-| xx_rec.nb | 识别模型 | 用于识别文本内容 |
+| xx_det.nb | 检测模型     | 用于检测文本位置 |
+| xx_rec.nb | 识别模型     | 用于识别文本内容 |
 
 *建议测试时直接放到 assets 中，避免放到手机目录中时由于权限问题而无法读取模型*
 
@@ -100,11 +96,11 @@ val config = OcrConfig()
 //config.labelPath = null
 
 
-config.modelPath = "models/ch_PP-OCRv2" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
+config.modelPath = "models/ch_PP-OCRv4" // 不使用 "/" 开头的路径表示安装包中 assets 目录下的文件，例如当前表示 assets/models/ocr_v2_for_cpu
 //config.modelPath = "/sdcard/Android/data/com.equationl.paddleocr4android.app/files/models" // 使用 "/" 表示手机储存路径，测试时请将下载的三个模型放置于该目录下
 config.clsModelFilename = "cls.nb" // cls 模型文件名
-config.detModelFilename = "det_db.nb" // det 模型文件名
-config.recModelFilename = "rec_crnn.nb" // rec 模型文件名
+config.detModelFilename = "det.nb" // det 模型文件名
+config.recModelFilename = "rec.nb" // rec 模型文件名
 
 // 运行全部模型
 // 请根据需要配置，三项全开识别率最高；如果只开识别几乎无法正确识别，至少需要搭配检测或分类其中之一
@@ -207,6 +203,9 @@ ocr.run(bitmap3, object : OcrRunCallback {
 
 
 # 更新记录
+**v1.2.0**
+- PaddleLite 更新至 v2.14-rc（支持 PPOCRv4, 感谢 @[dwh](https://github.com/dengwhao) PR ）
+
 **v1.1.0**
 
 - PaddleLite 更新至 v2.10

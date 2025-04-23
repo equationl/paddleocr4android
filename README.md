@@ -12,11 +12,13 @@
 
 ![截图](/doc/screenshot2.jpg)
 
+**如果需要 PPOCRv4 支持请使用 [Paddle-Lite](./doc/paddlelite.md) 部署**
+
 # 注意
 
 本库基于 *fastDeploy* 部署，同时支持 Paddle 原始模型和量化模型（.pdmodel、pdiparams），并且支持 PPOCRv2 和 PPOCRv3。
 
-但是使用本库可能会大幅增加安装包体积，如果对安装包体积敏感，推荐使用 *[Paddle-Lite](./doc/paddlelite.md)* 部署，但是使用 *Paddle-Lite* 部署将只支持 OPT 后的模型（.nb），并且目前尚未支持 PPOCRv3。
+但是使用本库可能会大幅增加安装包体积，如果对安装包体积敏感，推荐使用 *[Paddle-Lite](./doc/paddlelite.md)* 部署，使用 *Paddle-Lite* 部署仅支持 OPT 后的模型（.nb）。
 
 
 # 使用方法
