@@ -40,7 +40,7 @@ allprojects {
 
 ```gradle
 dependencies {
-    implementation 'com.github.equationl:paddleocr4android:v1.2.0'
+    implementation 'com.github.equationl.paddleocr4android:paddleocr4android:v1.2.9'
     
     // 如果需要包含 OpenCL 预测库，请使用下面这个依赖
     //implementation 'com.github.equationl:paddleocr4android:v1.1.1-OpenCL'
