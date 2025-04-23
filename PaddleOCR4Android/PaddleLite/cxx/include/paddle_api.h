@@ -14,11 +14,12 @@
 
 /*
  * This file defines PaddlePredictor, the api for lite. It supports multiple
- * hardware including ARM, X86, OpenCL, CUDA and so on.
+ * hardware including ARM, X86, OpenCL and so on.
  */
 
 #ifndef PADDLE_LITE_API_H_  // NOLINT
 #define PADDLE_LITE_API_H_
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -137,6 +138,7 @@ class LITE_API PaddlePredictor {
       const std::string& model_dir,
       LiteModelType model_type = LiteModelType::kProtobuf,
       bool record_info = false);
+  virtual void SetStream(TargetType target, void* stream) {}
 
   virtual ~PaddlePredictor() = default;
 
@@ -145,6 +147,61 @@ class LITE_API PaddlePredictor {
   lite_api::PowerMode mode_{lite_api::LITE_POWER_NO_BIND};
 };
 
+// reference XpuConfig in PaddlePaddle
+// paddle/fluid/inference/api/paddle_analysis_config.h
+struct LITE_API XpuConfig {
+  // Select which xpu device to run model.
+  int device_id{0};
+
+  // Available l3 size (Byte)
+  // For kunlun1, max l3_size is 16773120 Byte
+  // For kunlun2, max l3_size is 67104768 Byte
+  size_t l3_size{0};
+  // If l3_ptr is not nullptr, it is used as l3 buffer.
+  // If l3_ptr is nullptr, new l3 buffer will be created.
+  void* l3_ptr{nullptr};
+  // Available l3 size for autotune.
+  // If l3_autotune_size is 0, autotune is closed.
+  // Note: The remaining l3 size (l3_size - l3_autotune_size) is for
+  // kernels (both paddle/xdnn kernels)
+  size_t l3_autotune_size{0};
+
+  // Stream for execution.
+  // If stream is nullptr, default stream will be used.
+  void* stream{nullptr};
+
+  // Conv autotune level. Default 0 means no autotune.
+  int conv_autotune_level{0};
+  // Base conv autotune info is read from conv_autotune_file.
+  std::string conv_autotune_file;
+  // Whether write new conv autotune info to conv_autotune_file.
+  bool conv_autotune_file_writeback{false};
+
+  // Fc autotune level. The Optional values are 0-9. Default 0 means no
+  // autotune.
+  int fc_autotune_level{0};
+  // Base fc autotune info is read from fc_autotune_file.
+  std::string fc_autotune_file;
+  // Whether write new fc autotune info to fc_autotune_file.
+  bool fc_autotune_file_writeback{false};
+
+  // Gemm compute precision. Optional values are 0(int8),1(int16),2(int31).
+  // Note: "gemm_compute_precision" has no effect on quanted ops of quant model
+  int gemm_compute_precision{1};
+  // Which method to optimize softmax in transformer structure. Optional values
+  // are 0,1,2.
+  int transformer_softmax_optimize_level{0};
+  // Whether enable adaptive_seqlen optimize on transformer encoder.
+  bool transformer_encoder_adaptive_seqlen{true};
+
+  // Gelu out max threshold is limited to quant_post_static_gelu_out_threshold
+  // if use static post-quantization.
+  float quant_post_static_gelu_out_threshold{10.f};
+  // Activation method if use dynamic post-quantization.
+  // For kunlun1, optional values are 0(per_tensor),1(per_batch),2(per_head).
+  // For kunlun2, optional values are 0(per_tensor) or non-zero(every_16).
+  int quant_post_dynamic_activation_method{0};
+};
 /// Base class for all the configs.
 class LITE_API ConfigBase {
   std::string model_dir_;
@@ -165,18 +222,15 @@ class LITE_API ConfigBase {
   // The NNAdapter context properties for device configuration, model
   // compilation and execution
   std::string nnadapter_context_properties_{};
+  int (*nnadapter_context_callback_)(int event_id,
+                                     void* user_data){nullptr};  // NOLINT
   // The directory to find and store the compiled NNAdapter models.
   std::string nnadapter_model_cache_dir_{""};
+  // Dynamic shapes of the NNAdapter model
+  std::map<std::string, std::vector<std::vector<int64_t>>>
+      nnadapter_dynamic_shape_info_;
   // The buffers for loading the compiled NNAdapter models from memory.
   std::map<std::string, std::vector<char>> nnadapter_model_cache_buffers_{};
-  // The custom configuration file or buffer for the NNAdapter subgraph
-  // partition, here is an example:
-  // op_type:in_var_name_0,in_var_name1:out_var_name_0,out_var_name1
-  // op_type::out_var_name_0
-  // op_type:in_var_name_0
-  // op_type
-  std::string nnadapter_subgraph_partition_config_path_{};
-  std::string nnadapter_subgraph_partition_config_buffer_{};
   int device_id_{0};
   int x86_math_num_threads_ = 1;
 
@@ -185,6 +239,9 @@ class LITE_API ConfigBase {
   bool metal_use_aggressive_{false};
   void* metal_device_{nullptr};
   bool metal_use_memory_reuse_{false};
+
+  std::vector<std::string> discarded_passes_{};
+  std::map<TargetType, std::shared_ptr<void>> target_configs_;
 
  public:
   explicit ConfigBase(PowerMode mode = LITE_POWER_NO_BIND, int threads = 1);
@@ -197,6 +254,7 @@ class LITE_API ConfigBase {
   // set Power_mode
   void set_power_mode(PowerMode mode);
   PowerMode power_mode() const { return mode_; }
+
   /// \brief Set path and file name of generated OpenCL compiled kernel binary.
   ///
   /// If you use GPU of specific soc, using OpenCL binary will speed up the
@@ -208,14 +266,41 @@ class LITE_API ConfigBase {
   /// \return void
   void set_opencl_binary_path_name(const std::string& path,
                                    const std::string& name);
-  // set GPU opencl tune
+
+  /// \brief Set path and file name of generated OpenCL algorithm selecting
+  /// file.
+  ///
+  /// If you use GPU of specific soc, using OpenCL binary will speed up the
+  /// running time in most cases. But the first running for algorithm selecting
+  /// is timg-costing.
+  ///
+  /// \param tune_mode  Set a tune mode:
+  ///        CL_TUNE_NONE: turn off
+  ///        CL_TUNE_RAPID: find the optimal algorithm in a rapid way(less
+  ///        time-cost)
+  ///        CL_TUNE_NORMAL: find the optimal algorithm in a noraml
+  ///        way(suggestion)
+  ///        CL_TUNE_EXHAUSTIVE: find the optimal algorithm in a exhaustive
+  ///        way(most time-costing)
+  /// \param path  Path that OpenCL algorithm selecting file stores in. Make
+  /// sure the path exist and you have Read&Write permission.
+  /// \param name  File name of OpenCL algorithm selecting file.
+  /// \param lws_repeats  Repeat number for find the optimal local work size .
+  /// \return void
   void set_opencl_tune(CLTuneMode tune_mode = CL_TUNE_NONE,
                        const std::string& path = "",
                        const std::string& name = "",
                        size_t lws_repeats = 4);
 
-  // set GPU opencl precision
+  /// \brief Set runtime precision on GPU using OpenCL backend.
+  ///
+  /// \param p
+  ///          CL_PRECISION_AUTO: first fp16 if valid, default
+  ///          CL_PRECISION_FP32: force fp32
+  ///          CL_PRECISION_FP16: force fp16
+  /// \return void
   void set_opencl_precision(CLPrecisionType p = CL_PRECISION_AUTO);
+
   // set subgraph_model_dir
   void set_subgraph_model_cache_dir(std::string subgraph_model_cache_dir) {
     subgraph_model_cache_dir_ = subgraph_model_cache_dir;
@@ -249,6 +334,26 @@ class LITE_API ConfigBase {
   const std::string& nnadapter_context_properties() const {
     return nnadapter_context_properties_;
   }
+  // Set nnadapter_context_callback for NNAdapter device to get runtime
+  // parameters.
+  // For example:
+  // cudaStream_t cuda_stream;
+  // cudaStreamCreate(&cuda_stream);
+  // int nnadapter_context_callback(int event_id, void* user_data) {
+  //   if (event_id == 0x0100) {
+  //     *(std::reinterpret_cast<cudaStream_t*>(user_data)) = cuda_stream;
+  //   }
+  //   return 0;
+  // }
+  void set_nnadapter_context_callback(
+      int (*nnadapter_context_callback)(int event_id, void* user_data)) {
+    nnadapter_context_callback_ = nnadapter_context_callback;
+  }
+  int (*nnadapter_context_callback() const)(int event_id,  // NOLINT
+                                            void* user_data) {
+    return nnadapter_context_callback_;
+  }
+
   // Enable caching and set the directory to search and store the compiled
   // NNAdapter models in the file system.
   void set_nnadapter_model_cache_dir(const std::string& model_cache_dir) {
@@ -256,6 +361,16 @@ class LITE_API ConfigBase {
   }
   const std::string& nnadapter_model_cache_dir() const {
     return nnadapter_model_cache_dir_;
+  }
+  // Set dynamic shapes for building models
+  void set_nnadapter_dynamic_shape_info(
+      const std::map<std::string, std::vector<std::vector<int64_t>>>&
+          nnadapter_dynamic_shape_info) {
+    nnadapter_dynamic_shape_info_ = nnadapter_dynamic_shape_info;
+  }
+  const std::map<std::string, std::vector<std::vector<int64_t>>>&
+  nnadapter_dynamic_shape_info() const {
+    return nnadapter_dynamic_shape_info_;
   }
   // Set the buffers for loading the compiled NNAdapter models from memory.
   void set_nnadapter_model_cache_buffers(
@@ -265,23 +380,35 @@ class LITE_API ConfigBase {
   nnadapter_model_cache_buffers() const {
     return nnadapter_model_cache_buffers_;
   }
-  // Enable the custom subgraph partition for NNAdapter by providing the
-  // configuration file or buffer
-  void set_nnadapter_subgraph_partition_config_path(
-      const std::string& subgraph_partition_config_path) {
-    nnadapter_subgraph_partition_config_path_ = subgraph_partition_config_path;
-  }
-  const std::string& nnadapter_subgraph_partition_config_path() const {
-    return nnadapter_subgraph_partition_config_path_;
-  }
-  void set_nnadapter_subgraph_partition_config_buffer(
-      const std::string& subgraph_partition_config_buffer) {
-    nnadapter_subgraph_partition_config_buffer_ =
-        subgraph_partition_config_buffer;
-  }
-  const std::string& nnadapter_subgraph_partition_config_buffer() const {
-    return nnadapter_subgraph_partition_config_buffer_;
-  }
+  // use this api to replace all set_xpu_xxx
+  void set_xpu_config(const XpuConfig& xpu_config);
+  // XPU only, set the size of the workspace memory from L3 cache for the
+  // current thread.
+  // **DEPRECATED**, use set_xpu_l3_cache_method() in the future
+  void set_xpu_workspace_l3_size_per_thread(int l3_size = 0x4000000);
+  void set_xpu_l3_cache_method(size_t l3_size, bool locked = false);
+  void set_xpu_l3_cache_autotune(bool autotune = true);
+  void set_xpu_gm_workspace_method(size_t gm_size);
+  // **DEPRECATED**, use environ variable to enable autotune
+  // check http://agroup.baidu.com/share/md/f9233d84df11452488a1fdd4f859647f
+  void set_xpu_conv_autotune(bool autotune = true,
+                             const std::string& autotune_file = "");
+  // XPU only, specify the target device ID for the current thread.
+  // **DEPRECATED**, use xpu_set_device() at the very beginning of each worker
+  // thread
+  void set_xpu_dev_per_thread(int dev_no = 0);
+  // XPU set multi_stream
+  void enable_xpu_multi_stream();
+  // **DEPRECATED**, use set_xpu_multi_encoder_method() in the future
+  void set_xpu_multi_encoder_precision(const std::string& precision = "int16");
+  void set_xpu_multi_encoder_method(const std::string& precision = "int16",
+                                    bool adaptive_seqlen = false);
+  void set_xpu_cluster_num(const int num);
+  void set_xpu_sdnn_num(const int num);
+  void set_xpu_local_quant(bool local_quant = false);
+  void set_xpu_compute_precision(const std::string& precision = "int16");
+  void set_xpu_dump_tensor_path(const std::string& dump_tensor_path = "");
+  void set_xpu_dump_log_path(const std::string& dump_log_path = "");
   // set Device ID
   void set_device_id(int device_id) { device_id_ = device_id; }
   int get_device_id() const { return device_id_; }
@@ -300,6 +427,19 @@ class LITE_API ConfigBase {
   bool metal_use_aggressive() const { return metal_use_aggressive_; }
   void* metal_device() const { return metal_device_; }
   bool metal_use_memory_reuse() const { return metal_use_memory_reuse_; }
+
+  void add_discarded_pass(const std::string pass);
+  const std::vector<std::string> get_discarded_passes() const {
+    return discarded_passes_;
+  }
+
+  std::map<TargetType, std::shared_ptr<void>> target_configs() const {
+    return target_configs_;
+  }
+
+  // Set external custom allocator
+  void set_custom_allocator(TargetType target_type,
+                            CustomAllocator custom_allocator);
 };
 
 class LITE_API CxxModelBuffer {
@@ -334,16 +474,16 @@ class LITE_API CxxConfig : public ConfigBase {
   float sparse_threshold_{0.6f};
   std::map<int, std::vector<std::shared_ptr<void>>>
       preferred_inputs_for_warmup_;
-#ifdef LITE_WITH_CUDA
-  bool multi_stream_{false};
-#endif
-#ifdef LITE_WITH_MLU
-  lite_api::MLUCoreVersion mlu_core_version_{lite_api::MLUCoreVersion::MLU_270};
-  int mlu_core_number_{1};
-  DataLayoutType mlu_input_layout_{DATALAYOUT(kNCHW)};
-  std::vector<float> mlu_first_conv_mean_{};
-  std::vector<float> mlu_first_conv_std_{};
-#endif
+  // The custom configuration file or buffer for the NNAdapter subgraph
+  // partition, here is an example:
+  // op_type:in_var_name_0,in_var_name1:out_var_name_0,out_var_name1
+  // op_type::out_var_name_0
+  // op_type:in_var_name_0
+  // op_type
+  std::string nnadapter_subgraph_partition_config_path_;
+  std::string nnadapter_subgraph_partition_config_buffer_;
+  std::string mixed_precision_quantization_config_path_;
+  std::string mixed_precision_quantization_config_buffer_;
 
  public:
   void set_valid_places(const std::vector<Place>& x) { valid_places_ = x; }
@@ -379,55 +519,6 @@ class LITE_API CxxConfig : public ConfigBase {
   // abandoned in v3.0.
   bool model_from_memory() const { return static_cast<bool>(model_buffer_); }
 
-#ifdef LITE_WITH_CUDA
-  void set_multi_stream(bool multi_stream) { multi_stream_ = multi_stream; }
-  bool multi_stream() const { return multi_stream_; }
-#endif
-
-#ifdef LITE_WITH_MLU
-  // set MLU core version, which is used when compiling MLU kernels
-  void set_mlu_core_version(lite_api::MLUCoreVersion core_version);
-  // set MLU core number, which is used when compiling MLU kernels
-  void set_mlu_core_number(int core_number);
-  // whether use MLU's first conv kernel. First conv is a special kernel
-  // provided by MLU, its input is uint8, and also needs two 3-dimentional
-  // vectors which save all inputs' mean and std values
-  // set the 3-dimentional mean vector and 3-dimentional std vector used by
-  // MLU's first conv
-  void set_mlu_firstconv_param(const std::vector<float>& mean,
-                               const std::vector<float>& std);
-  // set MLU input layout. User can specify layout of input data to be NHWC,
-  // default is NCHW
-  void set_mlu_input_layout(DataLayoutType layout);
-
-  lite_api::MLUCoreVersion mlu_core_version() const;
-  int mlu_core_number() const;
-  DataLayoutType mlu_input_layout() const;
-  // std::pair<mean, std>
-  std::pair<std::vector<float>, std::vector<float>> mlu_firstconv_param() const;
-#endif
-
-  // XPU only, set the size of the workspace memory from L3 cache for the
-  // current thread.
-  // **DEPRECATED**, use set_xpu_l3_cache_method() in the future
-  void set_xpu_workspace_l3_size_per_thread(int l3_size = 0x4000000);
-  void set_xpu_l3_cache_method(size_t l3_size, bool locked = false);
-
-  void set_xpu_gm_workspace_method(size_t gm_size);
-
-  void set_xpu_conv_autotune(bool autotune = true,
-                             const std::string& autotune_file = "");
-
-  // XPU only, specify the target device ID for the current thread.
-  // **DEPRECATED**, use xpu_set_device() at the very beginning of each worker
-  // thread
-  void set_xpu_dev_per_thread(int dev_no = 0);
-
-  // **DEPRECATED**, use set_xpu_multi_encoder_method() in the future
-  void set_xpu_multi_encoder_precision(const std::string& precision = "int16");
-  void set_xpu_multi_encoder_method(const std::string& precision = "int16",
-                                    bool adaptive_seqlen = false);
-
   // set input tensor for warmup.
   // It is optional. If you set prefered_inputs, model wil run immediately when
   // predictor is created
@@ -454,6 +545,44 @@ class LITE_API CxxConfig : public ConfigBase {
     sparse_threshold_ = sparse_threshold;
   }
   float sparse_threshold() const { return sparse_threshold_; }
+
+  // Enable the custom subgraph partition for NNAdapter by providing the
+  // configuration file or buffer
+  void set_nnadapter_subgraph_partition_config_path(
+      const std::string& subgraph_partition_config_path) {
+    nnadapter_subgraph_partition_config_path_ = subgraph_partition_config_path;
+  }
+  const std::string& nnadapter_subgraph_partition_config_path() const {
+    return nnadapter_subgraph_partition_config_path_;
+  }
+  void set_nnadapter_subgraph_partition_config_buffer(
+      const std::string& subgraph_partition_config_buffer) {
+    nnadapter_subgraph_partition_config_buffer_ =
+        subgraph_partition_config_buffer;
+  }
+  const std::string& nnadapter_subgraph_partition_config_buffer() const {
+    return nnadapter_subgraph_partition_config_buffer_;
+  }
+  // Clear some ops' quant information to support mixed precision compute by
+  // configuration file or buffer
+  void set_nnadapter_mixed_precision_quantization_config_path(
+      const std::string& mixed_precision_quantization_config_path) {
+    mixed_precision_quantization_config_path_ =
+        mixed_precision_quantization_config_path;
+  }
+  const std::string& nnadapter_mixed_precision_quantization_config_path()
+      const {
+    return mixed_precision_quantization_config_path_;
+  }
+  void set_nnadapter_mixed_precision_quantization_config_buffer(
+      const std::string& mixed_precision_quantization_config_buffer) {
+    mixed_precision_quantization_config_buffer_ =
+        mixed_precision_quantization_config_buffer;
+  }
+  const std::string& nnadapter_mixed_precision_quantization_config_buffer()
+      const {
+    return mixed_precision_quantization_config_buffer_;
+  }
 };
 
 /// MobileConfig is the config for the light weight predictor, it will skip
@@ -462,9 +591,13 @@ class LITE_API MobileConfig : public ConfigBase {
   // whether to load data from memory. Model data will be loaded from memory
   // buffer if model_from_memory_ is true.
   bool model_from_memory_{false};
+  PrecisionMode precision_mode_{LITE_PRECISION_NORMAL};
 
-  // model data readed from file or memory buffer in combined format.
+  // model data readed from file in combined format.
   std::string lite_model_file_;
+  // model data readed from memory buffer in combined format.
+  const char* lite_model_buffer_ptr_ = nullptr;
+  size_t lite_model_buffer_size_{0};
 
   // NOTE: This is a deprecated variable and will be removed in latter release.
   std::string model_buffer_;
@@ -476,16 +609,19 @@ class LITE_API MobileConfig : public ConfigBase {
   // buffer
   void set_model_from_file(const std::string& x);
   void set_model_from_buffer(const std::string& x);
-  // return model data in lite_model_file_, which is in combined format.
+  void set_model_from_buffer(std::string&& x);
+  void set_model_from_buffer(const char* buffer, size_t length);
+  void set_precision_mode(PrecisionMode mode) { precision_mode_ = mode; }
+  PrecisionMode precision_mode() const { return precision_mode_; }
+  // return model file path.
   const std::string& lite_model_file() const { return lite_model_file_; }
+  // return model buffer data, which is in combined format.
+  const char* lite_model_buffer_ptr() const { return lite_model_buffer_ptr_; }
+  size_t lite_model_buffer_size() const { return lite_model_buffer_size_; }
 
   // return model_from_memory_, which indicates whether to load model from
   // memory buffer.
   bool is_model_from_memory() const { return model_from_memory_; }
-  // note: `model_from_memory` has the same effect as `is_model_from_memory`,
-  // but is_model_from_memory is recommended and `model_from_memory` will be
-  // abandoned in v3.0.
-  bool model_from_memory() const { return model_from_memory_; }
 
   // NOTE: This is a deprecated API and will be removed in latter release.
   void set_model_buffer(const char* model_buffer,
@@ -503,6 +639,9 @@ class LITE_API MobileConfig : public ConfigBase {
   void SetArmL3CacheSize(
       L3CacheSetMethod method = L3CacheSetMethod::kDeviceL3Cache,
       int absolute_val = -1);
+
+  // note: check device support fp16
+  bool check_fp16_valid();
 };
 
 template <typename ConfigT>
