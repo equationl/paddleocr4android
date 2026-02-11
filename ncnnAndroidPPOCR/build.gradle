@@ -6,11 +6,12 @@ plugins {
 
 android {
     namespace 'com.equationl.ncnnandroidppocr'
-    compileSdk 33
+    compileSdk 35
     ndkVersion "29.0.14206865"
 
     defaultConfig {
         minSdk 24
+        targetSdk 35
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"

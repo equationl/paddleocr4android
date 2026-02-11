@@ -11,11 +11,11 @@
 
 目前支持以下三种部署方式，不同部署方式各有优缺点，您可以根据自己的需求选择使用：
 
-| 部署方式                             | 介绍                                           | 支持版本            |
-|----------------------------------|----------------------------------------------|-----------------|
-| [fastDeploy](doc/fastDeploy.md)  | 基于 fastDeploy 部署，支持 PPOCRv2、PPOCRv3 模型，包体积较大 | PPOCRv2、PPOCRv3 |
-| [Paddle-Lite](doc/paddlelite.md) | 基于 Paddle-Lite 部署，包体积较小，支持 PPOCRv4 及以下模型     | PPOCRv4         | 
-| [Ncnn](doc/ncnn.md)              | 基于 Ncnn 部署，支持 PPOCRv5 模型，包体积较大               | PPOCRv5         |
+| 部署方式                             | 介绍                                           | 支持 PPOCR 版本     | 支持架构                                | 是否支持 16K Page | 
+|----------------------------------|----------------------------------------------|-----------------|-------------------------------------|---------------|
+| [fastDeploy](doc/fastDeploy.md)  | 基于 fastDeploy 部署，支持 PPOCRv2、PPOCRv3 模型，包体积较大 | PPOCRv2、PPOCRv3 | arm64-v8a, armeabi-v7a              | ❎             | 
+| [Paddle-Lite](doc/paddlelite.md) | 基于 Paddle-Lite 部署，包体积较小，支持 PPOCRv4 及以下模型     | PPOCRv4 及以下     | arm64-v8a, armeabi-v7a              | ❎             | 
+| [Ncnn](doc/ncnn.md)              | 基于 Ncnn 部署，支持 PPOCRv5 模型，包体积较大               | PPOCRv5         | arm64-v8a, armeabi-v7a, x86, x86_64 | ✅             | 
 
 
 由于不同部署方式实现不同，具体使用方法请查看对应的文档：
